@@ -1,0 +1,8 @@
+{
+    "confirmation_type_instant": "Konfirmasi Instan",
+    "ticket_type_paperless": "Paperless. E-tiket/voucher tidak perlu dicetak!",
+    "open_date_ticket": "Tiket Open Date",
+    "fixed_date_ticket": "Tiket Fixed Date",
+    "non_refundable": "Tidak dapat di-refund",
+    "free_cancelation": "Easy refund - {cancelation_days} hari sebelum tanggal kunjungan"
+}

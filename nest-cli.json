@@ -1,0 +1,17 @@
+{
+  "language": "ts",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "assets": ["**/*.hbs", "**/*.json", "**/*.css"],
+    "watchAssets": true,
+    "plugins": [
+      {
+        "name": "@nestjs/swagger/plugin",
+        "options": {
+          "dtoFileNameSuffix": [".entity.ts",  ".dto.ts",  ".interface.ts", ".model.ts", ".request.ts", ".response.ts"]
+        }
+      }
+    ]
+  }
+}
