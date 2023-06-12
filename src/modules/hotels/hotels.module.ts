@@ -14,6 +14,7 @@ import { HotelBookHotelEntity } from './entities/book_hotel.entity';
 import { HotelConfigurationsEntity } from './entities/hotel_config.entity';
 import { HotelEntity } from './entities/hotel.entity';
 import { HotelCronService } from './hotel-cron.service';
+import { HotelUsersEntity } from './entities/hotel_users.entity';
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { HotelCronService } from './hotel-cron.service';
             HotelBookingsEntity,
             HotelBookHotelEntity,
             HotelConfigurationsEntity,
+            HotelUsersEntity,
             HotelEntity
         ]),
         PassportModule.register({ defaultStrategy: 'firebase' }),

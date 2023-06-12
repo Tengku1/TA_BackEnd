@@ -4,23 +4,22 @@ import { ConfigService } from '@nestjs/config';
 const crypto = require('crypto');
 import { GetCheckRatesHotelsDto } from './dto/get-checkrates-hotels.dto';
 import { CreateHotelsBookingDto } from './dto/create-hotels-booking.dto';
-import { HotelLocationsEntity } from './entities/locations.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GetAvailabilityBookingDto } from './dto/get-availability-booking-dto';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { HotelBookingsEntity } from './entities/bookings.entity';
-import { GetHotelLocationsQuery } from './dto/get-hotel-locations-query.dto';
-import { PutHotelsBookingDto } from './dto/put-hotels-booking-dto';
 import { HotelBookHotelEntity } from './entities/book_hotel.entity';
 import { GetAvailabilityByHotelDto } from './dto/get-availability-book-by-hotel.dto';
 import { GetRateCommentDetailQuery } from './dto/get-rate-comment-detail-query.dto';
 import { GetHotelByNameDto } from './dto/get-hotel-by-name.dto';
 import HotelbedsLanguage from './enum/hotelbeds-language.enum';
-import { HotelConfigurationsEntity } from './entities/hotel_config.entity';
 import { HotelEntity } from './entities/hotel.entity';
 import { PaginationQuery } from './dto/pagination.query.dto';
-
+import { HotelUsersEntity } from './entities/hotel_users.entity';
+import { RegisterDto } from './dto/register-dto';
+import { LoginDto } from './dto/login-dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class HotelService {
@@ -35,14 +34,12 @@ export class HotelService {
   hotelsListLimit: string;
 
   constructor(
-    @InjectRepository(HotelLocationsEntity)
-    private readonly hotelLocationRepository: Repository<HotelLocationsEntity>,
     @InjectRepository(HotelBookingsEntity)
     private readonly hotelBookingRepository: Repository<HotelBookingsEntity>,
     @InjectRepository(HotelBookHotelEntity)
     private readonly hotelBookHotelRepository: Repository<HotelBookHotelEntity>,
-    @InjectRepository(HotelConfigurationsEntity)
-    private readonly hotelConfigurationsRepository: Repository<HotelConfigurationsEntity>,
+    @InjectRepository(HotelUsersEntity)
+    private readonly hotelUserRepository: Repository<HotelUsersEntity>,
     @InjectRepository(HotelEntity)
     private readonly hotelRepository: Repository<HotelEntity>,
     private configService: ConfigService,
@@ -98,6 +95,44 @@ export class HotelService {
     }
   }
 
+  async register(payload: RegisterDto) {
+    try {
+      const item = plainToInstance(HotelUsersEntity, instanceToPlain(payload));
+      const findUser = await this.hotelUserRepository.findOne({
+        where: {
+          email: item.email
+        }
+      });
+      if(!findUser) {
+        item.password = await bcrypt.hash(item.password, 10);
+
+        const user = await this.hotelUserRepository.save(item);
+        return user;
+      }
+      throw new HttpException("This email has been registered", 400);
+    } catch (error) {
+      throw this.exceptionHandler(error);
+    }
+  }
+
+  async login(payload: LoginDto) {
+    try {
+      const user = await this.hotelUserRepository.findOne({
+        where: {
+          email: payload.email
+        }
+      });
+
+      const matchPass = await bcrypt.compare(payload.password, user.password);
+      if (!matchPass) {
+        throw new HttpException("Account not found, please check the data you entered again", 400);
+      }
+      return user;
+    } catch (error) {
+      throw this.exceptionHandler(error);
+    }
+  }
+
   async checkStatusApi() {
     try {
       const response = await this.httpService.axiosRef.get('/status', {
@@ -135,65 +170,6 @@ export class HotelService {
       });
 
       return response.data;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async getHotelLocations(query: GetHotelLocationsQuery) {
-    try {
-      let results = {
-        data: {},
-        meta: {}
-      };
-      results.data = await this.hotelLocationRepository.find({
-        take: query.limit,
-        skip: (query.page - 1) * query.limit
-      });
-      
-      // Cek keyword kosong atau tidak
-      if (query.q) {
-        results.data = await this.hotelLocationRepository.find({
-          where: `"name" ILIKE '%${query.q}%' or "country" ILIKE '%${query.q}%'  or "province" ILIKE '%${query.q}%'  or "area" ILIKE '%${query.q}%'  or "unit" ILIKE '%${query.q}%'`,
-          take: query.limit,
-          skip: (query.page - 1) * query.limit
-        });
-      }
-      if (!query.q && query.isPopular) {
-        results.data = await this.hotelLocationRepository.find({
-          where: `is_popular = ${query.isPopular}`,
-          take: query.limit,
-          skip: (query.page - 1) * query.limit
-        });
-      }
-
-      results.meta = {
-        "itemKey": "id",
-        "totalItems": Object.keys(results.data).length
-      }
-
-      return results;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async getHotelLocationsByID(id: number) {
-    try {
-      // Cek keyword kosong atau tidak
-      let results = {
-        data: {},
-        meta: {}
-      };
-      results.data = await this.hotelLocationRepository.find({
-        where: `"id" = ${id}`
-      });
-
-      results.meta = {
-        "itemKey": "id"
-      }
-
-      return results;
     } catch (err) {
       this.exceptionHandler(err);
     }
@@ -369,22 +345,6 @@ export class HotelService {
     }
   };
 
-  async putBooking(id: string, payload: PutHotelsBookingDto) {
-    try {
-      const response = await this.httpService.axiosRef.request({
-        baseURL: `${this.baseUrl}${this.apiPath}`,
-        headers: this.header(),
-        method: 'PUT',
-        data: payload,
-        url: `/bookings/${id}`
-      });
-
-      return response.data;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
   async checkBookingAvailability(payload: GetAvailabilityBookingDto) {
     try {
       const res = await this.httpService.axiosRef.request({
@@ -519,30 +479,6 @@ export class HotelService {
       this.exceptionHandler(err);
     }
   };
-  
-  async reconfirmationBook() {
-    try {
-      const response = await this.httpService.axiosRef.get(`/bookings/reconfirmations`, {
-        baseURL: `${this.baseUrl}${this.apiPath}`,
-        headers: this.header()
-      });
-      return response.data;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async getFeePerHotels() {
-    try {
-      const results = await this.hotelConfigurationsRepository.find({
-        select: ["percentage_fee"]
-      });
-      
-      return results[0];
-    } catch (error) {
-      this.exceptionHandler(error);
-    }
-  }
 
   limitPaginationData(offset, limit) {
     const startIndex = offset * limit;

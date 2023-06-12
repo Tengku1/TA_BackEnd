@@ -4,17 +4,12 @@ import { ConfigService } from '@nestjs/config';
 const fs = require('fs');
 const crypto = require('crypto');
 import _ from "lodash";
-import { CreateHotelLocationsDto } from '../dto/create-hotel-locations.dto';
 import { HotelLocationsEntity } from '../entities/locations.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
-import { PutHotelLocationsDto } from '../dto/put-hotel-locations.dto';
-import path from 'path';
 import { GetBookingListsQuery } from '../dto/get-booking-lists-query.dto';
 import { HotelBookingsEntity } from '../entities/bookings.entity';
-import { GetHotelLocationsQuery } from '../dto/get-hotel-locations-query.dto';
-import { SetHotelConfigurationsDto } from '../dto/set-hotel-configurations.dto';
 import { HotelConfigurationsEntity } from '../entities/hotel_config.entity';
 import moment from 'moment';
 import { HotelEntity } from '../entities/hotel.entity';
@@ -95,41 +90,6 @@ export class HotelAdminService {
     }
   }
 
-  async setFeePerHotels(payload: SetHotelConfigurationsDto) {
-    try {
-      const results = await this.hotelConfigurationsRepository.find();
-      const item = plainToInstance(HotelConfigurationsEntity, instanceToPlain(payload));
-
-      if (results.length != 0) {
-        const response = await this.hotelConfigurationsRepository.update(results[results.length -1 ].id , item);
-        if (response.affected != 1) {
-          throw new HttpException("Update Failed", 204);
-        }
-
-        return payload.percentage_fee;
-      } else {
-        const response = await this.hotelConfigurationsRepository.save(item);
-        
-        return response.percentage_fee;
-      }
-      
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async getFeePerHotels() {
-    try {
-      const results = await this.hotelConfigurationsRepository.find({
-        select: ["percentage_fee"]
-      });
-
-      return results[results.length -1];
-    } catch (error) {
-      this.exceptionHandler(error);
-    }
-  }
-
   async getAll(query: PaginationQuery) {
     try {
       // Cek keyword kosong atau tidak
@@ -156,114 +116,6 @@ export class HotelAdminService {
   async getHotelDetail(id: string) {
     try {
       return await this.hotelRepository.findOne(id);
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async getHotelLocations(query: GetHotelLocationsQuery) {
-    try {
-      // Cek keyword kosong atau tidak
-      let results = {
-        data: {},
-        meta: {}
-      };
-      results.data = await this.hotelLocationRepository.find({
-        take: query.limit,
-        skip: (query.page - 1) * query.limit
-      });
-      if (query.q) {
-        results.data = await this.hotelLocationRepository.find({
-          where: `"name" ILIKE '%${query.q}%' or "country" ILIKE '%${query.q}%'  or "province" ILIKE '%${query.q}%'  or "area" ILIKE '%${query.q}%'  or "unit" ILIKE '%${query.q}%'`,
-          take: query.limit,
-          skip: (query.page - 1) * query.limit
-        });
-      }
-      results.meta = {
-        "itemKey": "id",
-        "totalItems": Object.keys(results.data).length
-      }
-
-      return results;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async getHotelLocationsByID(id: number) {
-    try {
-      // Cek keyword kosong atau tidak
-      let results = {
-        data: {},
-        meta: {}
-      };
-      results.data = await this.hotelLocationRepository.find({
-        where: `"id" = ${id}`
-      });
-
-      results.meta = {
-        "itemKey": "id"
-      }
-
-      return results;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async createLocations(payload: CreateHotelLocationsDto) {
-    try {
-      const item = plainToInstance(HotelLocationsEntity, instanceToPlain(payload));
-      const response = await this.hotelLocationRepository.save(item);
-      return response;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async createBulkLocations() {
-    try {
-      await this.hotelLocationRepository.query(`TRUNCATE hotel_locations RESTART IDENTITY CASCADE;`)
-      const rawData = fs.readFileSync(path.join(__dirname, '../../../../views/hotel-dummy-data/id-locations.json'));
-      const locations = JSON.parse(rawData);
-      const locations_parsed = locations.map((location) => ({
-        name: location.city,
-        country: 'Indonesia',
-        province: location.admin_name,
-        latitude: location.lat,
-        longitude: location.lng,
-        area: null,
-        unit: null,
-        is_popular: location.isPopular,
-        image: location.image
-      }));
-      const item = plainToInstance(HotelLocationsEntity, instanceToPlain(locations_parsed));
-      await this.hotelLocationRepository.save(item, {chunk:100});
-      return true;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  }
-
-  async updateLocations(id: number, payload: PutHotelLocationsDto) {
-    try {
-      const item = plainToInstance(HotelLocationsEntity, instanceToPlain(payload));
-      await this.hotelLocationRepository.update(id, item);
-      return item;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async deleteLocation(id: number) {
-    try {
-      const location = await this.hotelLocationRepository.findOne(id);
-      if (!location) {
-        throw new HttpException("Location Not Found", 400);
-      }
-
-      await this.hotelLocationRepository.delete(id);
-      return true;
     } catch (err) {
       this.exceptionHandler(err);
     }

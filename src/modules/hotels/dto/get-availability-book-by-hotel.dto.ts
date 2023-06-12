@@ -11,7 +11,6 @@ import {
 import { IsArrayOfObjects } from 'decorators/validators.decorator';
 import HotelbedsLanguage from '../enum/hotelbeds-language.enum';
 import { GetByHotelCodeDto } from './availability-hotel/get-by-hotel-code.dto';
-import { GetBookingAvailabilityGeolocationDto } from './booking-dto/get-booking-availability-geolocation.dto';
 import { GetBookingAvailabilityOccupanciesDto } from './booking-dto/get-booking-availability-occupancies.dto';
 import { GetBookingAvailabilityStayDto } from './booking-dto/get-booking-availability-stay.dto';
 

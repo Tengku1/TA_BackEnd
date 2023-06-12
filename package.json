@@ -42,6 +42,7 @@
     "@nestjs/swagger": "^5.2.0",
     "@nestjs/typeorm": "^8.0.2",
     "@netilon/differify": "^4.0.0",
+    "bcrypt": "^5.1.0",
     "bull": "^4.8.1",
     "cache-manager": "^3.4.4",
     "cache-manager-redis-store": "^2.0.0",
