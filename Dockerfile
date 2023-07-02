@@ -24,7 +24,6 @@ COPY --from=dist dist /usr/src/app/dist
 COPY --from=node_modules node_modules /usr/src/app/node_modules
 
 COPY . /usr/src/app
-COPY /src/modules/i18n /usr/src/app/dist/modules/i18n
 
 RUN apt-get update \
     && apt-get install -y wget gnupg \
