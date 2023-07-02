@@ -1,10 +1,9 @@
 {
-  "name": "xplorin-api",
+  "name": "ta-backend",
   "version": "3.1.2",
-  "description": "Xplorin backend api",
-  "author": "derakuswari",
+  "description": "Tugas Akhir Backend Api",
+  "author": "tengku",
   "private": true,
-  "license": "ITDC",
   "scripts": {
     "prebuild": "rimraf dist",
     "postbuild": "copyfiles --up 1 src/**/*.json dist && copyfiles --up 1 src/views/** dist && copyfiles --up 1 src/public/** dist",

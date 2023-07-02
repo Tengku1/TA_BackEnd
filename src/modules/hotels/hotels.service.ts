@@ -1,4 +1,4 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 const crypto = require('crypto');
@@ -10,16 +10,13 @@ import { GetAvailabilityBookingDto } from './dto/get-availability-booking-dto';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { HotelBookingsEntity } from './entities/bookings.entity';
 import { HotelBookHotelEntity } from './entities/book_hotel.entity';
-import { GetAvailabilityByHotelDto } from './dto/get-availability-book-by-hotel.dto';
 import { GetRateCommentDetailQuery } from './dto/get-rate-comment-detail-query.dto';
-import { GetHotelByNameDto } from './dto/get-hotel-by-name.dto';
 import HotelbedsLanguage from './enum/hotelbeds-language.enum';
-import { HotelEntity } from './entities/hotel.entity';
-import { PaginationQuery } from './dto/pagination.query.dto';
 import { HotelUsersEntity } from './entities/hotel_users.entity';
 import { RegisterDto } from './dto/register-dto';
 import { LoginDto } from './dto/login-dto';
 import * as bcrypt from 'bcrypt';
+import { CreateBookingDto } from './dto/create-booking.dto';
 
 @Injectable()
 export class HotelService {
@@ -40,8 +37,6 @@ export class HotelService {
     private readonly hotelBookHotelRepository: Repository<HotelBookHotelEntity>,
     @InjectRepository(HotelUsersEntity)
     private readonly hotelUserRepository: Repository<HotelUsersEntity>,
-    @InjectRepository(HotelEntity)
-    private readonly hotelRepository: Repository<HotelEntity>,
     private configService: ConfigService,
     private httpService: HttpService
   ) {
@@ -123,6 +118,9 @@ export class HotelService {
         }
       });
 
+      if (!user) {
+        throw new HttpException("Account not found, please check the data you entered again", 400);
+      }
       const matchPass = await bcrypt.compare(payload.password, user.password);
       if (!matchPass) {
         throw new HttpException("Account not found, please check the data you entered again", 400);
@@ -132,6 +130,23 @@ export class HotelService {
       throw this.exceptionHandler(error);
     }
   }
+  
+  async bookingList() {
+    try {
+      const books = await this.hotelBookingRepository.find();
+      let data = [];
+      for (let i = 0; i < books.length; i++) {
+        const hotel = await this.hotelBookHotelRepository.find({ id: books[i]['hotel'] });
+        data.push({
+          ...books[i],
+          hotel
+        });
+      }
+      return data;
+    } catch (err) {
+      this.exceptionHandler(err);
+    }
+  };
 
   async checkStatusApi() {
     try {
@@ -145,23 +160,6 @@ export class HotelService {
     }
   };
 
-  async getHotelByName(payload: GetHotelByNameDto, query: PaginationQuery) {
-    try {
-      const data = await this.hotelRepository.find({
-        where: `"name" ILIKE '%${payload.name}%'`,
-        take: query.limit,
-        skip: (query.page - 1) * query.limit
-      });
-      
-      return {
-        totalData: data.length,
-        data
-      };
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
   async getHotelDetail(id: string) {
     try {
       const response = await this.httpService.axiosRef.get(`/hotels/${id}/details`, {
@@ -169,176 +167,6 @@ export class HotelService {
         headers: this.header()
       });
 
-      return response.data;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async rateCommentDetail(query: GetRateCommentDetailQuery) {
-    try {
-      const date = new Date();
-      const response = await this.httpService.axiosRef.get(`/ratecommentdetails?code=${query.code}&date=${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`, {
-        baseURL: `${this.baseUrl}${this.contentTypesPath}`,
-        headers: this.header()
-      });
-      return response.data;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async checkRates(payload: GetCheckRatesHotelsDto) {
-    try {
-      const response = await this.httpService.axiosRef.request({
-        baseURL: `${this.baseUrl}${this.apiPath}`,
-        headers: this.header(),
-        method: 'POST',
-        data: {
-          rooms: [
-            payload
-          ],
-          language: payload.language
-        },
-        url: `/checkrates`
-      });
-      return response.data;
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async booking(payload: CreateHotelsBookingDto) {
-    try {
-      this.httpService.axiosRef.defaults.timeout = 60000;
-      const response = await this.httpService.axiosRef.request({
-        baseURL: `${this.baseUrl}/hotel-api/1.2`,
-        headers: this.header(),
-        method: 'POST',
-        data: payload,
-        url: '/bookings'
-      });
-
-      const book = response.data.booking;
-      if (book.hotel.currency !== "IDR") {
-        book.hotel.total_net = await this.toIDR(book.hotel.currency, book.hotel.total_net);
-        book.pending_amount = await this.toIDR(book.hotel.currency, book.pending_amount);
-        payload.xplorin_selling_rate = parseInt(await this.toIDR(book.hotel.currency, payload.xplorin_selling_rate));
-      }
-
-      let hotelDetail = await this.httpService.axiosRef.get(`/hotels/${book.hotel.code}/details`, {
-        baseURL: `${this.baseUrl}${this.contentApiPath}`,
-        headers: this.header()
-      });
-      let hotelDetailData = hotelDetail.data.hotel;
-
-      hotelDetailData.rooms = hotelDetailData.rooms.filter((room) => room.roomCode == book.hotel.rooms[0].code);
-
-      const facilities = hotelDetailData.facilities;
-      for (let i=0; i < facilities.length; i++) {
-        if (facilities[i].facilityCode == 260 && facilities[i].facilityGroupCode == 70) {
-          hotelDetailData.check_in = facilities[i].timeFrom;
-          delete hotelDetailData.facilities[i];
-          continue;
-        }
-        if (facilities[i].facilityCode == 390 && facilities[i].facilityGroupCode == 70) {
-          hotelDetailData.check_out = facilities[i].timeTo;
-          delete hotelDetailData.facilities[i];
-        }
-      }
-
-      const hotel_room = book.hotel.rooms[0];
-      let hotel_guest_detail;
-      let childText = hotel_room.rates[0].children != 1 ? "Children" : "Child";
-
-      const hotel_room_total_adult = hotel_room.rates[0].adults * payload.total_room;
-      if (hotel_room.rates[0].children > 0) {
-        const hotel_room_total_child = hotel_room.rates[0].children * payload.total_room;
-        hotel_guest_detail = `${hotel_room_total_adult} Adult, ${hotel_room_total_child} ${childText} (`;
-
-        let child_age = "";
-        hotel_room.paxes.forEach((item) => {
-            if(item['type'] === "CH") {
-                child_age += `${item.age} years old,`;
-            }
-        });
-        
-        child_age = `${child_age.slice(0,-1)}`;
-        hotel_guest_detail += `${child_age})`;
-      } else {
-        hotel_guest_detail = `${hotel_room_total_adult} Adult(s)`;
-      }
-      
-      const data = [
-        {
-          booking_reference_code: book.reference,
-          user: 123,
-          phone: payload.phone,
-          email: payload.email,
-          clientReference: book.clientReference,
-          status: "PENDING",
-          holder_name: book.holder.name,
-          holder_surname: book.holder.surname,
-          hotel: book.hotel.code,
-          check_in_time: hotelDetailData.check_in,
-          check_out_time: hotelDetailData.check_out || "23.00:00",
-          total_net: payload.xplorin_selling_rate,
-          currency: book.hotel.currency,
-          fee: payload.fee,
-          hotel_mandatroy: payload.hotel_mandatory_rate,
-          payment_status: "PENDING",
-          pending_amount: payload.xplorin_selling_rate,
-          totalGuest: payload.rooms[0].paxes.length,
-          guests: hotel_guest_detail,
-          total_room: payload.total_room,
-          roomType: book.hotel.rooms[0].name,
-          supplier_name: book.hotel.supplier.name,
-          supplier_vatNumber: book.hotel.supplier.vatNumber,
-          remark: payload.remark,
-          image: `http://photos.hotelbeds.com/giata/bigger/${payload.image}`,
-          net: book.hotel.totalNet
-        },
-        {
-          code: book.hotel.code,
-          check_in: book.hotel.checkIn,
-          check_out: book.hotel.checkOut,
-          name: book.hotel.name,
-          category_code: book.hotel.categoryCode,
-          category_name: book.hotel.categoryName,
-          destination_code: book.hotel.destinationCode,
-          destination_name: book.hotel.destinationName,
-          zone_code: book.hotel.zoneCode,
-          zone_name: book.hotel.zoneName,
-          latitude: book.hotel.latitude,
-          longitude: book.hotel.longitude,
-          rooms: book.hotel.rooms
-        },
-        {
-          hotel_detail: hotelDetailData
-        }
-      ];
-
-      const tbl_book = plainToInstance(HotelBookingsEntity, instanceToPlain(data[0]));
-      const tbl_book_hotel = plainToInstance(HotelBookHotelEntity, instanceToPlain(data[1]));
-
-      await this.hotelBookHotelRepository.save(tbl_book_hotel);
-      await this.hotelBookingRepository.save(tbl_book);
-      return {
-        ...data[0],
-        ...data[1],
-        ...data[2]
-      };
-    } catch (err) {
-      this.exceptionHandler(err);
-    }
-  };
-
-  async bookingDetail(rfCode: string, language?: HotelbedsLanguage) {
-    try {
-      const response = await this.httpService.axiosRef.get(`/bookings/${rfCode}?language=${language}`, {
-        baseURL: `${this.baseUrl}${this.apiPath}`,
-        headers: this.header()
-      });
       return response.data;
     } catch (err) {
       this.exceptionHandler(err);
@@ -397,67 +225,193 @@ export class HotelService {
     }
   };
 
-  async checkBookingAvailabilityByHotelCode(payload: GetAvailabilityByHotelDto) {
+  async rateCommentDetail(query: GetRateCommentDetailQuery) {
     try {
-      const res = await this.httpService.axiosRef.request({
-        baseURL: `${this.baseUrl}${this.apiPath}`,
-        headers: this.header(),
-        method: 'POST',
-        data: {
-          ...payload,
-          reviews: [
-            {
-              type: 'TRIPADVISOR',
-              maxRate: 5,
-              minRate: 1
-            }
-          ]
-        },
-        url: `/hotels`
+      const date = new Date();
+      const response = await this.httpService.axiosRef.get(`/ratecommentdetails?code=${query.code}&date=${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`, {
+        baseURL: `${this.baseUrl}${this.contentTypesPath}`,
+        headers: this.header()
       });
-
-      let hotelList = res.data.hotels.hotels;
-      if (hotelList == undefined) {
-        return [];
-      }
-      if (payload.offset != null) {
-        const offsetData = this.limitPaginationData(payload.offset, this.hotelsListLimit);
-        hotelList = hotelList.slice(offsetData.startIndex, offsetData.lastIndex + 1);
-      }
-
-      const codes = [];
-      hotelList.forEach((element) => {
-        codes.push(element.code);
-      });
-
-      const hotelDetail = await this.httpService.axiosRef.request({
-        baseURL: `${this.baseUrl}${this.contentApiPath}`,
-        headers: this.header(),
-        method: 'GET',
-        url: `/hotels?fields=images,address&codes=${codes}`
-      });
-
-      const hotels = {};
-      hotelDetail.data.hotels.forEach((element) => {
-        hotels[element.code] = element;
-      });
-
-      return hotelList.map((element) => ({
-        ...element,
-        ...hotels[element.code]
-      }));
+      return response.data;
     } catch (err) {
       this.exceptionHandler(err);
     }
   };
 
-  async cancelBooking(rfCode: string, language?: HotelbedsLanguage) {
+  async checkRates(payload: GetCheckRatesHotelsDto) {
     try {
-      const response = await this.httpService.axiosRef.delete(`/bookings/${rfCode}?cancellationFlag=CANCELLATION&language=${language}`, {
+      const response = await this.httpService.axiosRef.request({
+        baseURL: `${this.baseUrl}${this.apiPath}`,
+        headers: this.header(),
+        method: 'POST',
+        data: {
+          rooms: [
+            payload
+          ],
+          language: payload.language
+        },
+        url: `/checkrates`
+      });
+      return response.data;
+    } catch (err) {
+      this.exceptionHandler(err);
+    }
+  };
+
+  async bookingDetail(rfCode: string, language?: HotelbedsLanguage) {
+    try {
+      const response = await this.httpService.axiosRef.get(`/bookings/${rfCode}?language=${language}`, {
         baseURL: `${this.baseUrl}${this.apiPath}`,
         headers: this.header()
       });
+      return response.data;
+    } catch (err) {
+      this.exceptionHandler(err);
+    }
+  };
 
+  async saveBookToDatabase(payload: CreateHotelsBookingDto) {
+    try {
+      let hotelDetail = await this.httpService.axiosRef.get(`/hotels/${payload.hotelCode}/details`, {
+        baseURL: `${this.baseUrl}${this.contentApiPath}`,
+        headers: this.header()
+      });
+      let hotelDetailData = hotelDetail.data.hotel;
+
+      hotelDetailData.rooms = hotelDetailData.rooms.filter((room) => room.roomCode == payload.rooms['roomCode']);
+
+      const facilities = hotelDetailData.facilities;
+      for (let i=0; i < facilities.length; i++) {
+        if (facilities[i].facilityCode == 260 && facilities[i].facilityGroupCode == 70) {
+          hotelDetailData.check_in = facilities[i].timeFrom;
+          delete hotelDetailData.facilities[i];
+          continue;
+        }
+        if (facilities[i].facilityCode == 390 && facilities[i].facilityGroupCode == 70) {
+          hotelDetailData.check_out = facilities[i].timeTo;
+          delete hotelDetailData.facilities[i];
+        }
+      }
+      
+      const data = [
+        {
+          user: payload.user,
+          phone: payload.phone,
+          email: payload.email,
+          clientReference: payload.clientReference,
+          status: "PENDING",
+          holder_name: payload.holder['name'],
+          holder_surname: payload.holder['surname'],
+          hotel: payload.hotelCode,
+          check_in_time: hotelDetailData.check_in,
+          check_out_time: hotelDetailData.check_out || "23.00:00",
+          currency: payload.currency,
+          pending_amount: payload.pending_amount,
+          payment_status: "PENDING",
+          roomType: payload.rooms['roomName'],
+          remark: payload.remark,
+          image: payload.image
+        },
+        {
+          code: payload.hotelCode,
+          check_in: payload.check_in,
+          check_out: payload.check_out,
+          rateKey: payload.rooms['rateKey'],
+          paxId: payload.rooms['paxes']['roomId'],
+          roomType: payload.rooms['paxes']['type'],
+          name: payload.hotelName,
+          category_name: hotelDetailData.description.content,
+          destination_name: hotelDetailData.name.content,
+          zone_name: hotelDetailData.name,
+          latitude: hotelDetailData.coordinates.latitude,
+          longitude: hotelDetailData.coordinates.longitude,
+          rooms: payload.rooms
+        }
+      ];
+
+      const tbl_book_hotel = plainToInstance(HotelBookHotelEntity, instanceToPlain(data[1]));
+      const savedBookHotel = await this.hotelBookHotelRepository.save(tbl_book_hotel);
+      const bookHotelId = savedBookHotel.id;
+
+      const tbl_book = plainToInstance(HotelBookingsEntity, instanceToPlain(data[0]));
+      tbl_book.hotel = bookHotelId;
+      const savedBook = await this.hotelBookingRepository.save(tbl_book);
+
+      const bookId = savedBook.booking_reference_code;
+      return {
+        statusCode: HttpStatus.CREATED,
+        bookId,
+        bookHotelId,
+        ...data[0],
+        ...data[1],
+        ...data[2]
+      };
+    } catch (err) {
+      this.exceptionHandler(err);
+    }
+  };
+
+  async booking(payload: CreateBookingDto) {
+    try {
+      const book = await this.hotelBookingRepository.find({
+        where: `"booking_reference_code" = '${payload.bookId}'`
+      });
+      const hotel = await this.hotelBookHotelRepository.find({
+        where: `"id" = '${payload.id}'`
+      });
+      if (book[0].payment_status == "PAID") {
+        throw new HttpException("Payment Status cannot be 'PAID'", 400);
+      }
+      if (book[0].payment_status == "CANCELLED") {
+        throw new HttpException("Payment Status cannot be 'CANCELLED'", 400);
+      }
+
+      await this.hotelBookingRepository.update({
+        booking_reference_code: payload.bookId
+      }, {
+        status: 'CONFIRMED',
+        payment_status: 'CONFIRMED',
+        pending_amount: '0'
+      });
+
+      this.httpService.axiosRef.defaults.timeout = 60000;
+      const data = {
+        "phone": `1111`,
+        "email": `1111`,
+        "holder": {
+          "name": `111`,
+          "surname": `111`,
+        },
+        "rooms": [{
+          "rateKey": `${hotel[0].rateKey}`,
+          "paxes": [{
+            "roomId": `${hotel[0].paxId}`,
+            "type": `${hotel[0].roomType}`,
+            "name":`${book[0].holder_name}`,
+            "surname":`${book[0].holder_surname}`,
+          }],
+        }],
+        "clientReference": `${book[0].clientReference}`
+      };
+      const response = await this.httpService.axiosRef.request({
+        baseURL: `${this.baseUrl}/hotel-api/1.2`,
+        headers: this.header(),
+        method: 'POST',
+        data,
+        url: '/bookings'
+      });
+      return response.data;
+    } catch (err) {
+      if (err.response.status == 500 && err.message == "Insufficient allotment") {
+        await this.hotelBookingRepository.delete(payload.bookId);
+        await this.hotelBookHotelRepository.delete(payload.id);
+      }
+      this.exceptionHandler(err);
+    }
+  }
+
+  async cancelBooking(rfCode: string, language?: HotelbedsLanguage) {
+    try {
       const checkPaymentStatus = await this.hotelBookingRepository.find({
         where: `"booking_reference_code" = '${rfCode}'`,
         select: ['payment_status']
@@ -474,7 +428,7 @@ export class HotelService {
         payment_status: "CANCELLED"
       });
 
-      return response.data;
+      return checkPaymentStatus;
     } catch (err) {
       this.exceptionHandler(err);
     }

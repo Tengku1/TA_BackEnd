@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -10,12 +9,15 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { IsArrayOfObjects } from 'decorators/validators.decorator';
 import HotelbedsLanguage from '../enum/hotelbeds-language.enum';
 import { CreateBookingHolderDto } from './booking-dto/create-booking-holder.dto';
 import { CreateBookingRoomsDto } from './booking-dto/create-booking-rooms.dto';
 
 export class  CreateHotelsBookingDto {
+  @IsNotEmpty()
+  @IsString()
+  user: string;
+
   @IsNotEmpty()
   @IsString()
   phone: string;
@@ -31,46 +33,70 @@ export class  CreateHotelsBookingDto {
   holder?: CreateBookingHolderDto[];
 
   @IsNotEmpty()
-  @IsNumber()
-  total_room: number;
+  @IsString()
+  check_in: string;
+
+  @IsNotEmpty()
+  @IsString()
+  check_out: string;
 
   @IsNotEmpty()
   @IsNumber()
-  xplorin_selling_rate: number;
+  hotelCode: number;
 
   @IsNotEmpty()
-  @IsNumber()
-  fee: number;
+  @IsString()
+  hotelName: string;
+  
+  @IsNotEmpty()
+  @IsString()
+  zoneName: string;
 
   @IsNotEmpty()
-  @IsBoolean()
-  hotel_mandatory_rate: boolean;
+  @IsString()
+  categoryName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  destinationName: string;
+
+  @IsOptional()
+  @IsString()
+  currency: string = 'IDR';
 
   @IsNotEmpty()
   @ValidateNested({ each: true })
-  @IsArrayOfObjects()
+  @IsObject()
   @Type(() => CreateBookingRoomsDto)
   rooms?: CreateBookingRoomsDto[];
-
-  @IsNotEmpty()
-  @IsString()
-  image: string;
-
-  @IsNotEmpty()
-  @IsString()
-  clientReference: string;
 
   @IsOptional()
   @IsString()
   remark: string = '';
+
+  @IsOptional()
+  @IsString()
+  pending_amount: string = '';
+
+  @IsNotEmpty()
+  @IsString()
+  latitude: string;
+
+  @IsNotEmpty()
+  @IsString()
+  longitude: string;
+
+  @IsOptional()
+  @IsString()
+  image: string;
   
   @IsOptional()
   @IsNumber()
   tolerance: number;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  vendor: string;
+  clientReference: string;
 
   @ApiProperty({ enum: HotelbedsLanguage })
   @IsOptional()

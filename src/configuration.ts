@@ -1,6 +1,5 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { name, version } from '../package.json';
-import { SnakeNamingStrategy } from './snake-naming.strategy';
 
 export default () => ({
     BASE_URL: process.env.BASE_URL || 'http://localhost:3000',
@@ -20,7 +19,6 @@ export default () => ({
 
     // TODO: CHANGE THIS TO NULL
     ANDROID_APP_PACKAGE_NAME: process.env.ANDROID_APP_PACKAGE_NAME || null,
-    IOS_APP_PACKAGE_NAME: process.env.IOS_APP_PACKAGE_NAME || null,
 
     database: {
         applicationName: `${name}_${version}`,
@@ -36,7 +34,5 @@ export default () => ({
         subscribers: ["dist/**/*.subscriber{.ts,.js}"],
         migrations: ["dist/migrations/*{.ts,.js}"],
         migrationsRun: false,
-        namingStrategy: new SnakeNamingStrategy(),
     } as TypeOrmModuleOptions,
-
 });

@@ -9,9 +9,4 @@ export class AppController {
   getHello() {
     return this.appService.hello();
   }
-
-  @Get('/test_env')
-  getTest() {
-    return this.appService.test_env();
-  }
 }

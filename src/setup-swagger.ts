@@ -1,7 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { version } from '../package.json';
-//import * as fs from 'fs';
 
 export function setupSwagger(app: INestApplication): void {
   const ENV = process.env.NODE_ENV;

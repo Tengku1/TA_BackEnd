@@ -1,8 +1,0 @@
-{
-    "confirmation_type_instant": "Instant Confirmation",
-    "ticket_type_paperless": "No need to print! Simply show the e-ticket/voucher",
-    "open_date_ticket": "Open Date Ticket",
-    "fixed_date_ticket": "Fixed Date Ticket",
-    "non_refundable": "Non-refundable",
-    "free_cancelation": "Easy refund - {cancelation_days} days before activity time"
-}

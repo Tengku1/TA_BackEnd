@@ -2,24 +2,19 @@ import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/commo
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateHotelsBookingDto } from './dto/create-hotels-booking.dto';
 import { GetAvailabilityBookingDto } from './dto/get-availability-booking-dto';
-import { GetAvailabilityByHotelDto } from './dto/get-availability-book-by-hotel.dto';
 import { GetCheckRatesHotelsDto } from './dto/get-checkrates-hotels.dto';
 import { HotelService } from './hotels.service';
 import {  GetRateCommentDetailQuery } from './dto/get-rate-comment-detail-query.dto';
-import { GetHotelByNameDto } from './dto/get-hotel-by-name.dto';
 import HotelbedsLanguage from './enum/hotelbeds-language.enum';
-import { GetBookingListsQuery } from './dto/get-booking-lists-query.dto';
-import { HotelAdminService } from './admin/hotels.admin.service';
-import { PaginationQuery } from './dto/pagination.query.dto';
 import { RegisterDto } from './dto/register-dto';
 import { LoginDto } from './dto/login-dto';
+import { CreateBookingDto } from './dto/create-booking.dto';
 
 @ApiTags('hotels')
 @Controller('hotels')
 export class HotelsController {
     constructor(
-        private readonly hotelsService: HotelService,
-        private readonly hotelAdminService: HotelAdminService
+        private readonly hotelsService: HotelService
     ) { }
 
     @Get('/api-status')
@@ -28,14 +23,6 @@ export class HotelsController {
     })
     checkStatus(){
       return this.hotelsService.checkStatusApi();
-    }
-
-    @Post('/name/details')
-    @ApiOperation({
-      summary: 'Get Hotels By Name'
-    })
-    getHotelByName(@Body() request: GetHotelByNameDto, @Query() query: PaginationQuery){
-      return this.hotelsService.getHotelByName(request, query);
     }
 
     @Get('/ratecomment')
@@ -58,8 +45,8 @@ export class HotelsController {
     @ApiOperation({
       summary: 'Get Booking Lists'
     })
-    getBookingList(@Query() request: GetBookingListsQuery){
-      return this.hotelAdminService.bookingList(request);
+    getBookingList(){
+      return this.hotelsService.bookingList();
     }
 
     @Post('/bookings/availability')
@@ -68,14 +55,6 @@ export class HotelsController {
     })
     getAvailabilityHotel(@Body() request: GetAvailabilityBookingDto){
       return this.hotelsService.checkBookingAvailability(request);
-    }
-
-    @Post('/bookings/availability/hotel')
-    @ApiOperation({
-      summary: 'Get Availability Hotels By Code'
-    })
-    getAvailabilityHotelByCode(@Body() request: GetAvailabilityByHotelDto){
-      return this.hotelsService.checkBookingAvailabilityByHotelCode(request);
     }
 
     @Post('/check-rates')
@@ -90,8 +69,16 @@ export class HotelsController {
     @ApiOperation({
       summary: 'Create Bookings Hotels'
     })
-    bookings(@Body() request: CreateHotelsBookingDto){
+    bookings(@Body() request: CreateBookingDto){
       return this.hotelsService.booking(request);
+    }
+
+    @Post('/bookings/database')
+    @ApiOperation({
+      summary: 'Save Booking Hotel To Database'
+    })
+    saveBookToDatabase(@Body() request: CreateHotelsBookingDto){
+      return this.hotelsService.saveBookToDatabase(request);
     }
 
     @Get('/bookings/:rfCode')

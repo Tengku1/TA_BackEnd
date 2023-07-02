@@ -1,11 +1,17 @@
 import {
-  Column, Entity, PrimaryColumn
+  Column, Entity, PrimaryGeneratedColumn
 } from 'typeorm';
 
 @Entity('hotels_book_hotel')
 export class HotelBookHotelEntity {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
+
+  @Column({type: 'integer'})
   code: number;
+
+  @Column({ type: 'text' })
+  rateKey: string;
 
   @Column({ type: 'text' })
   check_in: string;
@@ -14,22 +20,19 @@ export class HotelBookHotelEntity {
   check_out: string;
 
   @Column({ type: 'text' })
-  name: string;
+  paxId: string;
 
   @Column({ type: 'text' })
-  category_code: string;
-  
+  roomType: string;
+
+  @Column({ type: 'text' })
+  name: string;
+
   @Column({ type: 'text' })
   category_name: string;
 
   @Column({ type: 'text' })
-  destination_code: string;
-
-  @Column({ type: 'text' })
   destination_name: string;
-
-  @Column({ type: 'integer' })
-  zone_code: number;
 
   @Column({ type: 'text' })
   zone_name: string;
