@@ -4,7 +4,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PdfModule } from './modules/pdf/pdf.module';
 import configuration from './configuration';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
@@ -34,7 +33,6 @@ import { HotelsModule } from './modules/hotels/hotels.module';
       inject: [ConfigService],
     }),
     HttpModule,
-    PdfModule,
     HotelsModule,
   ],
   controllers: [AppController],
