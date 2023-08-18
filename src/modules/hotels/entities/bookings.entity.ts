@@ -40,14 +40,17 @@ export class HotelBookingsEntity {
   @Column({ type: 'text' })
   currency: string;
 
+  @Column({ type: 'text' })
+  image: string;
+  
+  @Column({ type: 'text' })
+  hotel: string;
+
   @Column({ type: 'text', default: 'UNKOWN' })
   payment_status: string;
 
   @Column({ type: 'text' })
-  image: string;
-
-  @Column({ type: 'text' })
-  hotel: string;
+  cancellationPolicies: string;
 
   @Column({ type: 'date', default: () => "CURRENT_TIMESTAMP"})
   created_at: Date;

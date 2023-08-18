@@ -10,6 +10,7 @@ import { HotelBookingsEntity } from './entities/bookings.entity';
 import { HotelBookHotelEntity } from './entities/book_hotel.entity';
 import { HotelConfigurationsEntity } from './entities/hotel_config.entity';
 import { HotelUsersEntity } from './entities/hotel_users.entity';
+import { HotelOrderEntity } from './entities/hotel_order.entity';
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { HotelUsersEntity } from './entities/hotel_users.entity';
             HotelBookingsEntity,
             HotelBookHotelEntity,
             HotelConfigurationsEntity,
+            HotelOrderEntity,
             HotelUsersEntity
         ]),
         PassportModule.register({ defaultStrategy: 'firebase' }),

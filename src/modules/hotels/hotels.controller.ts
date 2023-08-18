@@ -49,6 +49,14 @@ export class HotelsController {
       return this.hotelsService.bookingList();
     }
 
+    @Get('/order/lists')
+    @ApiOperation({
+      summary: 'Get Order Lists'
+    })
+    getOrderLists(){
+      return this.hotelsService.orderList();
+    }
+
     @Post('/bookings/availability')
     @ApiOperation({
       summary: 'Get Availability Hotels'
@@ -89,12 +97,20 @@ export class HotelsController {
       return this.hotelsService.bookingDetail(rfCode, language);
     }
 
+    @Get('/order/:id')
+    @ApiOperation({
+      summary: 'Get Order Detail'
+    })
+    getOrderDetail(@Param('id') id: string){
+      return this.hotelsService.getOrderById(id);
+    }
+
     @Delete('/bookings/:rfCode')
     @ApiOperation({
       summary: 'Cancelling Booking'
     })
-    deleteBooking(@Param('rfCode') rfCode: string, @Query('language') language: HotelbedsLanguage = HotelbedsLanguage.ENG){
-      return this.hotelsService.cancelBooking(rfCode, language);
+    deleteBooking(@Param('rfCode') rfCode: string){
+      return this.hotelsService.cancelBooking(rfCode);
     }
 
     @Post('/register')

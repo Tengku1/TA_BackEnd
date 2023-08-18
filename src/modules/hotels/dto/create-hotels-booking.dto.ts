@@ -98,6 +98,10 @@ export class  CreateHotelsBookingDto {
   @IsString()
   clientReference: string;
 
+  @IsNotEmpty()
+  @IsString()
+  cancellationPolicies: string;
+
   @ApiProperty({ enum: HotelbedsLanguage })
   @IsOptional()
   @IsEnum(HotelbedsLanguage)

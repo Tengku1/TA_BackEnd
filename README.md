@@ -1,0 +1,15 @@
+-- INSTRUKSI
+
+- Pastikan anda sudah menginstall docker
+- Pastikan anda sudah menginstall postgresql, dan redis pada docker
+- Pastikan anda sudah konfigurasi database postgre dan cache redis di file env
+- Pastikan anda sudah memiliki akun hotelbeds, anda dapat mengikuti cara berikut :
+  - Buka browser, kunjungi situs https://developer.hotelbeds.com/register/
+  - Isi data form, dan setelah anda register, lakukan proses login.
+  - Setelah login, anda akan dibawa menuju halaman dashboard
+  - Copy Api-key dan Secret pada halaman tersebut, dan paste copyan tadi ke file env, contoh pada file .env :
+    -- HOTELS_API_KEY=xxxxxxx
+    -- HOTELS_SECRET=xxxxxx
+- Buka terminal atau cmd, lalu jalankan "npm install", proses ini dilakukan untuk mengunduh semua kebutuhan library, module yang dibutuhkan pada aplikasi ini
+- Setelah proses installasi selesai, jalankan command "yarn run start:dev" pada terminal
+- Sistem secara otomatis menjalankan sistem back end, untuk selanjutnya anda bisa mencoba sistem ini via postman ataupun aplikasi mobile.
